@@ -9,7 +9,7 @@ export class PaymentsService {
   readonly #stripe = new Stripe(envs.STRIPE_API_KEY);
 
   async createPaymentSession(paymentSessionDto: PaymentSessionDto) {
-    const { currency, items } = paymentSessionDto;
+    const { currency, items, orderId } = paymentSessionDto;
 
     const lineItems = items.map((item) => ({
       price_data: {
@@ -23,11 +23,15 @@ export class PaymentsService {
     }));
 
     const session = await this.#stripe.checkout.sessions.create({
-      payment_intent_data: {},
+      payment_intent_data: {
+        metadata: {
+          order_id: orderId,
+        },
+      },
       line_items: lineItems,
       mode: 'payment',
-      success_url: 'http://localhost:3003/api/payments/success',
-      cancel_url: 'http://localhost:3003/api/payments/cancel',
+      success_url: envs.SUCCESS_URL,
+      cancel_url: envs.CANCEL_URL,
     });
 
     return session;
@@ -36,19 +40,14 @@ export class PaymentsService {
   async stripeWebhook(req: Request, res: Response) {
     const sig = req.headers['stripe-signature'];
 
-    const endpointSecret = 'whsec_OBs4DhTFFmDwKpc3QigCWUjMEnzX6vU5';
-
     let event: Stripe.Event;
-
-    console.log('req: ', req);
 
     try {
       event = this.#stripe.webhooks.constructEvent(
         req['rawBody'],
         sig,
-        endpointSecret,
+        envs.ENDPOINT_SECRET,
       );
-      console.log('evnet: ', event);
     } catch (err) {
       res.status(400).send(`Webhook Error: ${err}`);
       return;
@@ -56,7 +55,8 @@ export class PaymentsService {
 
     switch (event.type) {
       case 'charge.succeeded':
-        console.log(event);
+        const chargeSuccess = event.data.object;
+        console.log('orderId: ', chargeSuccess.metadata.orderId);
         break;
       default:
         break;

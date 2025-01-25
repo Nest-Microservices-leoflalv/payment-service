@@ -5,10 +5,9 @@ const envSchema = z
   .object({
     PORT: z.preprocess((val) => Number(val), z.number().int().positive()),
     STRIPE_API_KEY: z.string(),
-    NATS_SERVERS: z.preprocess(
-      (val: string) => val?.split(',') ?? val,
-      z.array(z.string()),
-    ),
+    SUCCESS_URL: z.string().url(),
+    CANCEL_URL: z.string().url(),
+    ENDPOINT_SECRET: z.string(),
   })
   .passthrough();
 
