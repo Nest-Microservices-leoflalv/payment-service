@@ -8,6 +8,10 @@ const envSchema = z
     SUCCESS_URL: z.string().url(),
     CANCEL_URL: z.string().url(),
     ENDPOINT_SECRET: z.string(),
+    NATS_SERVERS: z.preprocess(
+      (val: string) => val?.split(',') ?? val,
+      z.array(z.string()),
+    ),
   })
   .passthrough();
 
